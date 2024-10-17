@@ -1,0 +1,6 @@
+@AI_Voyage_Concierge_HostAddress = http://localhost:5159
+
+GET {{AI_Voyage_Concierge_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
