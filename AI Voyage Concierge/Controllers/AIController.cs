@@ -5,15 +5,21 @@ using System.Net.Http.Headers;
 
 namespace AI_Voyage_Concierge.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
     public class AIController : ControllerBase
     {
-        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly ILogger<AIController> _logger;
         private readonly IConfiguration _configuration;
         private readonly string geminiUrl;
 
-        public AIController(ILogger<WeatherForecastController> logger, IConfiguration configuration)
+
+        /// <summary>
+        /// Constructor for AIController.
+        /// </summary>
+        /// <param name="logger">Logger instance.</param>
+        /// <param name="configuration">Configuration instance.</param>
+        public AIController(ILogger<AIController> logger, IConfiguration configuration)
         {
             _logger = logger;
             _configuration = configuration;
