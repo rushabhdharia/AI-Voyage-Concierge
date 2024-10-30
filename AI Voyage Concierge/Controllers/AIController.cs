@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace AI_Voyage_Concierge.Controllers
 {
@@ -7,6 +9,38 @@ namespace AI_Voyage_Concierge.Controllers
     [ApiController]
     public class AIController : ControllerBase
     {
+        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly string geminiUrl;
+
+        public AIController(ILogger<WeatherForecastController> logger, IConfiguration configuration)
+        {
+            _logger = logger;
+            _configuration = configuration;
+
+            var GeminiSection = _configuration?.GetSection("Gemini");
+            geminiUrl = GeminiSection?["url"] + GeminiSection?["key"];
+        }
+
+
+        private async Task<string> SendRequestToGemini(string content)
+        {
+            HttpClient client = new();          
+
+            HttpRequestMessage request = new(HttpMethod.Post, geminiUrl)
+            {
+                Content = new StringContent(content)
+            };
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            HttpResponseMessage response = await client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            string responseBody = await response.Content.ReadAsStringAsync();
+
+            return responseBody;
+        }
+
+
         [HttpPost(Name = "GetTravelItenary")]
         public string GetTravelItenary()
         {
@@ -15,6 +49,8 @@ namespace AI_Voyage_Concierge.Controllers
              * 2. Number of Days
              * 3. Freeform text for explaination
              */
+
+
             return "";
         }
 
