@@ -2,6 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using AI_Voyage_Concierge.Entities;
+using AI_Voyage_Concierge.Services;
+using MongoDB.Driver;
 
 namespace AI_Voyage_Concierge.Controllers
 {
@@ -9,23 +12,17 @@ namespace AI_Voyage_Concierge.Controllers
     [ApiController]
     public class AIController : ControllerBase
     {
-        private readonly ILogger<AIController> _logger;
         private readonly IConfiguration _configuration;
         private readonly string geminiUrl;
-
-
-        /// <summary>
-        /// Constructor for AIController.
-        /// </summary>
-        /// <param name="logger">Logger instance.</param>
-        /// <param name="configuration">Configuration instance.</param>
-        public AIController(ILogger<AIController> logger, IConfiguration configuration)
+        private readonly IMongoCollection<Chat> _chats;
+        
+        public AIController(IConfiguration configuration, MongoDBService mongoDbService)
         {
-            _logger = logger;
             _configuration = configuration;
+            _chats = mongoDbService.Database.GetCollection<Chat>("chats");
 
             var GeminiSection = _configuration?.GetSection("Gemini");
-            geminiUrl = GeminiSection?["url"] + GeminiSection?["key"];
+            geminiUrl = GeminiSection?["url"] + GeminiSection?["APIkey"];
         }
 
 
@@ -39,24 +36,40 @@ namespace AI_Voyage_Concierge.Controllers
             };
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-            HttpResponseMessage response = await client.SendAsync(request);
+            var response = await client.SendAsync(request);
             response.EnsureSuccessStatusCode();
-            string responseBody = await response.Content.ReadAsStringAsync();
+            var responseBody = await response.Content.ReadAsStringAsync();
 
             return responseBody;
         }
 
+        private async Task<string> CreateJsonRequest()
+        {
+
+            return "";
+        }
+
 
         [HttpPost(Name = "GetTravelItenary")]
-        public string GetTravelItenary()
+        public string GetTravelItenary(string[] locations, int numberOfDays, string freeformText, int previousChatId=-1)
         {
             /*
              * 1. Different Locations
              * 2. Number of Days
              * 3. Freeform text for explaination
              */
+            if (previousChatId != -1)
+            {
+                // get chat history 
+            }
+            
+            // build json request
+            
+            // send request to gemini
 
-
+            // store chat
+            
+            // return response to user
             return "";
         }
 
@@ -76,6 +89,13 @@ namespace AI_Voyage_Concierge.Controllers
              * 1. Get Location and get notifications
              */
             return "";
+        }
+        
+        [HttpGet(Name = "GetChatHistory")]
+        public async Task<IEnumerable<Chat>> GetChatHistory(string userEmail)
+        {
+            var filter = Builders<Chat>.Filter.Eq("user_email", userEmail);
+            return await _chats.Find(_=>true).ToListAsync();
         }
 
 
