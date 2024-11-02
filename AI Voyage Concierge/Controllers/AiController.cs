@@ -1,28 +1,24 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using AI_Voyage_Concierge.Entities;
-using AI_Voyage_Concierge.Services;
+using AI_Voyage_Concierge.Data;
 using MongoDB.Driver;
 
 namespace AI_Voyage_Concierge.Controllers
 {
     [Route("[controller]/[action]")]
     [ApiController]
-    public class AIController : ControllerBase
+    public class AiController : ControllerBase
     {
-        private readonly IConfiguration _configuration;
-        private readonly string geminiUrl;
+        private readonly string _geminiUrl;
         private readonly IMongoCollection<Conversation> _conversations;
         
-        public AIController(IConfiguration configuration, MongoDBService mongoDbService)
+        public AiController(IConfiguration configuration, MongoDbService mongoDbService)
         {
-            _configuration = configuration;
             _conversations = mongoDbService.Database.GetCollection<Conversation>("conversations");
 
-            var GeminiSection = _configuration?.GetSection("Gemini");
-            geminiUrl = GeminiSection?["url"] + GeminiSection?["APIkey"];
+            var geminiSection = configuration.GetSection("Gemini");
+            _geminiUrl = geminiSection["url"] + geminiSection["APIkey"];
         }
 
 
@@ -30,7 +26,7 @@ namespace AI_Voyage_Concierge.Controllers
         {
             HttpClient client = new();          
 
-            HttpRequestMessage request = new(HttpMethod.Post, geminiUrl)
+            HttpRequestMessage request = new(HttpMethod.Post, _geminiUrl)
             {
                 Content = new StringContent(content)
             };
@@ -50,27 +46,40 @@ namespace AI_Voyage_Concierge.Controllers
         }
 
 
-        [HttpPost(Name = "GetTravelItenary")]
-        public string GetTravelItenary(string[] locations, int numberOfDays, string freeformText, int previousChatId=-1)
+        [HttpPost(Name = "GetTravelItinerary")]
+        public async Task<CurrentConversation> GetTravelItinerary(string[] locations, int numberOfDays, string freeformText, string conversationId="")
         {
             /*
              * 1. Different Locations
              * 2. Number of Days
              * 3. Freeform text for explaination
              */
-            if (previousChatId != -1)
+            var currentConversation = new CurrentConversation();
+            if (!string.IsNullOrWhiteSpace(conversationId))
             {
                 // get chat history 
+                
             }
             
             // build json request
+            var jsonRequest = await CreateJsonRequest();
             
             // send request to gemini
+            currentConversation.Response = await SendRequestToGemini(jsonRequest);
 
             // store chat
+            if (string.IsNullOrEmpty(conversationId))
+            {
+                // Create new conversation
+            }
+            else
+            {
+                // update conversation
+                currentConversation.ConversationId = conversationId;
+            }
             
             // return response to user
-            return "";
+            return currentConversation;
         }
 
         [HttpPost(Name = "GetInformationAboutLocation")]

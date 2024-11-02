@@ -1,5 +1,5 @@
 using AI_Voyage_Concierge.Entities;
-using AI_Voyage_Concierge.Services;
+using AI_Voyage_Concierge.Data;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 
@@ -11,7 +11,7 @@ public class IdentityController : Controller
 {
     private readonly IMongoCollection<User> _users;
     // Constructor
-    public IdentityController(MongoDBService mongoDbService)
+    public IdentityController(MongoDbService mongoDbService)
     {
         _users = mongoDbService.Database.GetCollection<User>("users");
     }
