@@ -94,8 +94,8 @@ namespace AI_Voyage_Concierge.Controllers
         [HttpGet(Name = "GetConversationHistory")]
         public async Task<IEnumerable<Conversation>> GetConversationHistory(string userEmail)
         {
-            //var filter = Builders<Conversation>.Filter.Eq("user_email", userEmail);
-            return await _conversations.Find(_=>true).ToListAsync();
+            var filter = Builders<Conversation>.Filter.Eq("user_email", userEmail);
+            return await _conversations.Find(filter).ToListAsync();
         }
 
 

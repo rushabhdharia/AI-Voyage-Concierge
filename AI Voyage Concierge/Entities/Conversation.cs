@@ -11,7 +11,6 @@ public class Conversation
     
     [BsonElement("conversation_id"), BsonRepresentation(BsonType.Int32)]
     public int ConversationId { get; set; }
-
     
     [BsonElement("user_email"), BsonRepresentation(BsonType.String)]
     public string UserEmail { get; set; }
