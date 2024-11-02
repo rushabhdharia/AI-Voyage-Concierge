@@ -14,12 +14,12 @@ namespace AI_Voyage_Concierge.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly string geminiUrl;
-        private readonly IMongoCollection<Chat> _chats;
+        private readonly IMongoCollection<Conversation> _conversations;
         
         public AIController(IConfiguration configuration, MongoDBService mongoDbService)
         {
             _configuration = configuration;
-            _chats = mongoDbService.Database.GetCollection<Chat>("chats");
+            _conversations = mongoDbService.Database.GetCollection<Conversation>("conversations");
 
             var GeminiSection = _configuration?.GetSection("Gemini");
             geminiUrl = GeminiSection?["url"] + GeminiSection?["APIkey"];
@@ -91,11 +91,11 @@ namespace AI_Voyage_Concierge.Controllers
             return "";
         }
         
-        [HttpGet(Name = "GetChatHistory")]
-        public async Task<IEnumerable<Chat>> GetChatHistory(string userEmail)
+        [HttpGet(Name = "GetConversationHistory")]
+        public async Task<IEnumerable<Conversation>> GetConversationHistory(string userEmail)
         {
-            var filter = Builders<Chat>.Filter.Eq("user_email", userEmail);
-            return await _chats.Find(_=>true).ToListAsync();
+            //var filter = Builders<Conversation>.Filter.Eq("user_email", userEmail);
+            return await _conversations.Find(_=>true).ToListAsync();
         }
 
 
