@@ -4,6 +4,7 @@ using AI_Voyage_Concierge.Entities;
 using AI_Voyage_Concierge.Data;
 using MongoDB.Driver;
 using System.Text.Json;
+using AI_Voyage_Concierge.DTO;
 
 namespace AI_Voyage_Concierge.Controllers
 {
@@ -28,6 +29,11 @@ namespace AI_Voyage_Concierge.Controllers
         }
 
 
+        /// <summary>
+        /// Send a request to the Gemini API with the given content
+        /// </summary>
+        /// <param name="content">The content of the request</param>
+        /// <returns>The response from Gemini</returns>
         private async Task<string> SendRequestToGemini(string content)
         {
             HttpClient client = new();          
@@ -45,7 +51,7 @@ namespace AI_Voyage_Concierge.Controllers
             return responseBody;
         }
         
-        private string CreateJsonRequest(string message)
+        private static string CreateJsonRequest(string message)
         {
             // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
             Root root = new();
@@ -62,62 +68,93 @@ namespace AI_Voyage_Concierge.Controllers
 
             return JsonSerializer.Serialize(root);
         }
-
+        
         /// <summary>
         /// Creates a message to be sent to the Gemini API to request a travel itinerary
         /// </summary>
-        /// <param name="locations">The locations to visit</param>
-        /// <param name="numberOfDays">The number of days of the trip</param>
-        /// <param name="freeformText">Any additional requests or considerations</param>
+        /// /// <param name="itineraryDto"></param>
         /// <returns>The message to be sent to Gemini</returns>
-        private string CreateMessage(string[] locations, int numberOfDays, string freeformText="")
+        private static string CreateMessage(ItineraryDto itineraryDto)
         {
-           
-            var message = $"Create a travel itinerary for {numberOfDays} days. I want to travel to the following locations {string.Join(", ", locations)}.";
-            if (!string.IsNullOrWhiteSpace(freeformText))
+            var message = $"Create a travel itinerary for {itineraryDto.NumberOfDays} days.";
+
+            if (itineraryDto.Locations is { Length: > 1 })
             {
-                message += $"Additional Considerations - {freeformText}.";
+                message = $"I want to travel to the following locations - {string.Join(", ", itineraryDto.Locations)}.";
+            }
+            else if (itineraryDto.Locations is { Length: 1 })
+            {
+                message = $"I want to travel to {itineraryDto.Locations[0]}.";
+            }
+            
+            if (!string.IsNullOrWhiteSpace(itineraryDto.FreeformText))
+            {
+                message += $"Additional Considerations - {itineraryDto.FreeformText}.";
             }
 
             return message;
         }
 
-        private string CreateMessage(Conversation conversation, string freeformText)
+        private static string CreateJsonRequest(Conversation conversation, string? freeformText)
         {
-            throw new NotImplementedException();
+            Root root = new();
+            Content content = new();
+            
+            // add history
+            foreach (var message in conversation.Messages)
+            {
+                content.role = message.Role;
+                content.parts =
+                [
+                    new Part { text = message.MessageValue }
+                ];
+                root.contents.Add(content);
+            }
+            
+            content.role = "user";
+            content.parts =
+            [
+                new Part { text = freeformText ?? throw new ArgumentNullException(nameof(freeformText)) }
+            ];
+            root.contents.Add(content);
+
+            return JsonSerializer.Serialize(root);
         }
 
         [HttpPost(Name = "GetTravelItinerary")]
-        public async Task<CurrentConversation> GetTravelItinerary(string[] locations, int numberOfDays, string freeformText="", string conversationId="")
+        public async Task<ActionResult<CurrentConversation>> GetTravelItinerary(ItineraryDto itineraryDto)
         {
             /*
              * 1. Different Locations
              * 2. Number of Days
              * 3. Freeform text for explanation
              */
-            string message;
+            string message, jsonRequest;
             var currentConversation = new CurrentConversation();
             
             //Create message to be sent to Gemini
-            if (!string.IsNullOrWhiteSpace(conversationId))
+            if (!string.IsNullOrWhiteSpace(itineraryDto.ConversationId))
             {
                 // get chat history 
-                var previousConversation = await GetConversationHistoryById(conversationId);
-                message = CreateMessage(previousConversation, freeformText);
+                var previousConversation = await GetConversationHistoryById(itineraryDto.ConversationId);
+                
+                // build json request
+                jsonRequest = CreateJsonRequest(previousConversation, itineraryDto.FreeformText);
             }
             else
             {
-                message = CreateMessage(locations, numberOfDays, freeformText);
+                message = CreateMessage(itineraryDto);
+                // build json request
+                jsonRequest = CreateJsonRequest(message);
             }
             
-            // build json request
-            var jsonRequest = CreateJsonRequest(message);
+            
             
             // send request to gemini
             currentConversation.Response = await SendRequestToGemini(jsonRequest);
-
+            
             // store chat
-            if (string.IsNullOrEmpty(conversationId))
+            if (string.IsNullOrEmpty(itineraryDto.ConversationId))
             {
                 // Create new conversation
                 throw new NotImplementedException();
@@ -125,7 +162,7 @@ namespace AI_Voyage_Concierge.Controllers
             else
             {
                 // update conversation
-                currentConversation.ConversationId = conversationId;
+                currentConversation.ConversationId = itineraryDto.ConversationId;
                 // update conversation in mongodb document
                 throw new NotImplementedException();
             }
