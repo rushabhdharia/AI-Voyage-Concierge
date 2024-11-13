@@ -9,16 +9,8 @@ public class Conversation
     [BsonElement("_id"), BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
     
-    //redundant need to refactor and remove
-    [BsonElement("conversation_id"), BsonRepresentation(BsonType.Int32)]
-    public int? ConversationId { get; set; }
-    
     [BsonElement("user_email"), BsonRepresentation(BsonType.String)]
     public required string UserEmail { get; set; }
-    
-    //redundant need to refactor and remove
-    [BsonElement("total_messages"), BsonRepresentation(BsonType.Int32)]
-    public int? TotalMessages { get; set; }
     
     [BsonElement("messages")]
     public required List<Message> Messages { get; set; }
