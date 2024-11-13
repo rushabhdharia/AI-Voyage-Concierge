@@ -315,15 +315,6 @@ namespace AI_Voyage_Concierge.Controllers
             // return response to user
             return currentConversation;
         }
-
-        [HttpPost(Name = "LocationBasedNotifications")]
-        public string LocationBasedNotifications()
-        {
-            /*
-             * 1. Get Location and get notifications
-             */
-            return "";
-        }
         
         /// <summary>
         /// Get a list of all conversations for the given user
