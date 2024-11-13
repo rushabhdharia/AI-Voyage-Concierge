@@ -47,8 +47,12 @@ namespace AI_Voyage_Concierge.Controllers
             var response = await client.SendAsync(request);
             response.EnsureSuccessStatusCode();
             var responseBody = await response.Content.ReadAsStringAsync();
+            
+            var geminiResponse = JsonSerializer.Deserialize<GeminiResponseDTO>(responseBody);
 
-            return responseBody;
+            if (geminiResponse is null) throw new NullReferenceException();
+
+            return geminiResponse.candidates[0].content.parts[0].text;
         }
         
         private static string CreateJsonRequest(string message)
