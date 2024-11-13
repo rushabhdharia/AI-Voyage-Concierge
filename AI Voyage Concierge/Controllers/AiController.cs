@@ -98,24 +98,31 @@ namespace AI_Voyage_Concierge.Controllers
         private static string CreateJsonRequest(Conversation conversation, string? freeformText)
         {
             Root root = new();
-            Content content = new();
+            
+            root.contents = new List<Content>();
             
             // add history
             foreach (var message in conversation.Messages)
             {
-                content.role = message.Role;
-                content.parts =
-                [
-                    new Part { text = message.MessageValue }
-                ];
-                root.contents.Add(content);
+                var previousContent = new Content
+                {
+                    role = message.Role,
+                    parts =
+                    [
+                        new Part { text = message.MessageValue }
+                    ]
+                };
+                root.contents.Add(previousContent);
             }
             
-            content.role = "user";
-            content.parts =
-            [
-                new Part { text = freeformText ?? throw new ArgumentNullException(nameof(freeformText)) }
-            ];
+            Content content = new()
+            {
+                role = "user",
+                parts =
+                [
+                    new Part { text = freeformText ?? throw new ArgumentNullException(nameof(freeformText)) }
+                ]
+            };
             root.contents.Add(content);
 
             return JsonSerializer.Serialize(root);
@@ -129,7 +136,7 @@ namespace AI_Voyage_Concierge.Controllers
              * 2. Number of Days
              * 3. Freeform text for explanation
              */
-            string message, jsonRequest;
+            string chatMessage, jsonRequest;
             var currentConversation = new CurrentConversation();
             
             //Create message to be sent to Gemini
@@ -139,32 +146,50 @@ namespace AI_Voyage_Concierge.Controllers
                 var previousConversation = await GetConversationHistoryById(itineraryDto.ConversationId);
                 
                 // build json request
-                jsonRequest = CreateJsonRequest(previousConversation, itineraryDto.FreeformText);
+                chatMessage = itineraryDto.FreeformText ?? throw new InvalidOperationException();
+                jsonRequest = CreateJsonRequest(previousConversation, chatMessage);
             }
             else
             {
-                message = CreateMessage(itineraryDto);
+                chatMessage = CreateMessage(itineraryDto);
                 // build json request
-                jsonRequest = CreateJsonRequest(message);
+                jsonRequest = CreateJsonRequest(chatMessage);
             }
-            
-            
             
             // send request to gemini
             currentConversation.Response = await SendRequestToGemini(jsonRequest);
-            
+
+            var userMessage = new Message
+            {
+                Role = "user",
+                MessageValue = chatMessage
+            };
+
+            var modelMessage = new Message
+            {
+                Role = "model",
+                MessageValue = currentConversation.Response,
+            };
+
             // store chat
             if (string.IsNullOrEmpty(itineraryDto.ConversationId))
             {
                 // Create new conversation
-                throw new NotImplementedException();
+                var conversation = new Conversation
+                {
+                    UserEmail = "rdharia@gmail.com", //use jwt 
+                    Messages = [userMessage, modelMessage]
+                };
+                currentConversation.ConversationId = await CreateConversation(conversation);
             }
             else
             {
                 // update conversation
                 currentConversation.ConversationId = itineraryDto.ConversationId;
                 // update conversation in mongodb document
-                throw new NotImplementedException();
+    
+                await UpdateConversation(itineraryDto.ConversationId, userMessage);
+                await UpdateConversation(itineraryDto.ConversationId, modelMessage);
             }
             
             // return response to user
@@ -210,11 +235,22 @@ namespace AI_Voyage_Concierge.Controllers
         {
             var userEmail = "rdharia@gmail.com"; // replace using claim from jwt
             var filterEmail = Builders<Conversation>.Filter.Eq("user_email", userEmail);
-            var filterConversationId = Builders<Conversation>.Filter.Eq("conversation_id", conversationId);
-            return await _conversations.Find(filterEmail&filterConversationId).FirstOrDefaultAsync();
+            var filterConversationId = Builders<Conversation>.Filter.Eq(x => x.Id, conversationId);
+            return await _conversations.Find(filterConversationId).FirstOrDefaultAsync();
         }
 
 
-
+        private async Task<string?> CreateConversation(Conversation conversation)
+        {
+             await _conversations.InsertOneAsync(conversation);
+             return conversation.Id;
+        }
+        
+        private async Task UpdateConversation(string conversationId, Message message)
+        {
+            var filter = Builders<Conversation>.Filter.Eq("conversation_id", conversationId);
+            var update = Builders<Conversation>.Update.Push<Message>(x => x.Messages, message);
+            await _conversations.UpdateOneAsync(filter, update);
+        }
     }
 }
