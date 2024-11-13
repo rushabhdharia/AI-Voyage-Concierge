@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.ComponentModel;
+using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using AI_Voyage_Concierge.Entities;
 using AI_Voyage_Concierge.Data;
@@ -94,6 +95,49 @@ namespace AI_Voyage_Concierge.Controllers
             if (!string.IsNullOrWhiteSpace(itineraryDto.FreeformText))
             {
                 message += $"Additional Considerations - {itineraryDto.FreeformText}.";
+            }
+
+            return message;
+        }
+
+        private static string CreateInformationRequest(InformationDTO informationDto)
+        {
+            var message = $"Provide the following information for {informationDto.Location}.";
+
+            foreach (var informationType in informationDto.InformationTypes)
+            {
+                switch (informationType)
+                {
+                    case InformationType.FunFact:
+                        message += "Fun Facts, ";
+                        break;
+                    case InformationType.History:
+                        message += "History,  ";
+                        break;
+                    case InformationType.LocalCustomsAndTraditions:
+                        message += "Local Customs and Traditions, ";
+                        break;
+                    case InformationType.HiddenGems:
+                        message += "Hidden Gems, ";
+                        break;
+                    case InformationType.CulturalFactsAndSignificance:
+                        message += "Cultural Facts and Significance, ";
+                        break;
+                    case InformationType.CurrentOwnership:
+                        message += "Current Ownership, ";
+                        break;
+                    case InformationType.PreviousOwnerships:
+                        message += "Previous Ownerships, ";
+                        break;
+                    default:
+                        throw new InvalidEnumArgumentException();
+                }
+            }
+            
+            
+            if (!string.IsNullOrWhiteSpace(informationDto.FreeformText))
+            {
+                message += $"Additionally, {informationDto.FreeformText}.";
             }
 
             return message;
@@ -204,12 +248,72 @@ namespace AI_Voyage_Concierge.Controllers
         }
 
         [HttpPost(Name = "GetInformationAboutLocation")]
-        public string GetInformationAboutLocation()
+        public async Task<ActionResult<CurrentConversation>> GetInformationAboutLocation(InformationDTO informationDto)
         {
             /*
              * 1. Ask Questions to Bot
              */
-            return "";
+             string chatMessage, jsonRequest;
+            var currentConversation = new CurrentConversation();
+            
+            //Create message to be sent to Gemini
+            if (!string.IsNullOrWhiteSpace(informationDto.ConversationId))
+            {
+                // get chat history 
+                var previousConversation = await GetConversationHistoryById(informationDto.ConversationId);
+                
+                // build json request
+                chatMessage = informationDto.FreeformText ?? throw new InvalidOperationException();
+                jsonRequest = CreateJsonRequest(previousConversation, chatMessage);
+            }
+            else
+            {
+                chatMessage = CreateInformationRequest(informationDto);
+                // build json request
+                jsonRequest = CreateJsonRequest(chatMessage);
+            }
+            
+            // send request to gemini
+            currentConversation.Response = await SendRequestToGemini(jsonRequest);
+
+            var userMessage = new Message
+            {
+                Role = "user",
+                MessageValue = chatMessage
+            };
+
+            var modelMessage = new Message
+            {
+                Role = "model",
+                MessageValue = currentConversation.Response,
+            };
+
+            // store chat
+            if (string.IsNullOrEmpty(informationDto.ConversationId))
+            {
+                // Create new conversation
+                var conversation = new Conversation
+                {
+                    UserEmail = "rdharia@gmail.com", //use jwt 
+                    Messages = [userMessage, modelMessage]
+                };
+                currentConversation.ConversationId = await CreateConversation(conversation);
+            }
+            else
+            {
+                // update conversation
+                currentConversation.ConversationId = informationDto.ConversationId;
+                // update conversation in mongodb document
+
+                var messages = new List<Message>();
+                messages.Add(userMessage);
+                messages.Add(modelMessage);
+                
+                await UpdateConversation(informationDto.ConversationId, messages);
+            }
+            
+            // return response to user
+            return currentConversation;
         }
 
         [HttpPost(Name = "LocationBasedNotifications")]
