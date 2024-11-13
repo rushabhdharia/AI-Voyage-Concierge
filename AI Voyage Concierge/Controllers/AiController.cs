@@ -187,9 +187,12 @@ namespace AI_Voyage_Concierge.Controllers
                 // update conversation
                 currentConversation.ConversationId = itineraryDto.ConversationId;
                 // update conversation in mongodb document
-    
-                await UpdateConversation(itineraryDto.ConversationId, userMessage);
-                await UpdateConversation(itineraryDto.ConversationId, modelMessage);
+
+                var messages = new List<Message>();
+                messages.Add(userMessage);
+                messages.Add(modelMessage);
+                
+                await UpdateConversation(itineraryDto.ConversationId, messages);
             }
             
             // return response to user
@@ -246,11 +249,18 @@ namespace AI_Voyage_Concierge.Controllers
              return conversation.Id;
         }
         
-        private async Task UpdateConversation(string conversationId, Message message)
+        private async Task UpdateConversation(string conversationId, List<Message> messages)
         {
-            var filter = Builders<Conversation>.Filter.Eq("conversation_id", conversationId);
-            var update = Builders<Conversation>.Update.Push<Message>(x => x.Messages, message);
-            await _conversations.UpdateOneAsync(filter, update);
+            var filter = Builders<Conversation>.Filter.Eq(x => x.Id, conversationId);
+            //var update = Builders<Conversation>.Update.Push<Message>(x => x.Messages, message);
+            
+            var conversation = await _conversations.Find(filter).FirstOrDefaultAsync();
+            foreach (var message in messages)
+            {
+                conversation.Messages.Add(message);
+            }
+            
+            await _conversations.ReplaceOneAsync(filter, conversation);
         }
     }
 }
