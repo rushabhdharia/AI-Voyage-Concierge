@@ -22,26 +22,26 @@ public class IdentityController : Controller
         _users = mongoDbService.Database.GetCollection<User>("users");
         _configuration = configuration;
     }
-    [HttpGet]
+    [HttpGet, AllowAnonymous]
     public async Task<IEnumerable<User>> Get()
     {
         return await _users.Find(_ => true).ToListAsync();
     }
     
-    [HttpPost]
+    [HttpPost, AllowAnonymous]
     public async Task<User> Create(User user)
     {
         await _users.InsertOneAsync(user);
         return user;
     }
     
-    [HttpGet]
+    [HttpGet, AllowAnonymous]
     public async Task<User> GetUserByEmail(string email)
     {
         return await _users.Find(x => x.Email == email).FirstOrDefaultAsync();
     }
     
-    [HttpPost]
+    [HttpPost, AllowAnonymous]
     public async Task<IActionResult> Authenticate (User user)
     {
         var currentUser = await _users.Find(x => x.Email == user.Email && x.Password == user.Password).FirstOrDefaultAsync();

@@ -6,6 +6,7 @@ using AI_Voyage_Concierge.Data;
 using MongoDB.Driver;
 using System.Text.Json;
 using AI_Voyage_Concierge.DTO;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AI_Voyage_Concierge.Controllers
 {
@@ -176,6 +177,7 @@ namespace AI_Voyage_Concierge.Controllers
             return JsonSerializer.Serialize(root);
         }
 
+        [Authorize]
         [HttpPost(Name = "GetTravelItinerary")]
         public async Task<ActionResult<CurrentConversation>> GetTravelItinerary(ItineraryDto itineraryDto)
         {
@@ -246,7 +248,8 @@ namespace AI_Voyage_Concierge.Controllers
             // return response to user
             return currentConversation;
         }
-
+        
+        [Authorize]
         [HttpPost(Name = "GetInformationAboutLocation")]
         public async Task<ActionResult<CurrentConversation>> GetInformationAboutLocation(InformationDTO informationDto)
         {
@@ -321,6 +324,7 @@ namespace AI_Voyage_Concierge.Controllers
         /// </summary>
         /// <param name="userEmail">The email of the user</param>
         /// <returns>A list of conversations</returns>
+        [Authorize]
         [HttpGet(Name = "GetConversationHistory")]
         public async Task<IEnumerable<Conversation>> GetConversationHistory(string userEmail)
         {
