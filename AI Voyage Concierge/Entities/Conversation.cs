@@ -14,4 +14,14 @@ public class Conversation
     
     [BsonElement("messages")]
     public required List<Message> Messages { get; set; }
+    
+    [BsonElement("conversation_type"), BsonRepresentation(BsonType.Int32)]
+    public required ConversationType ConversationType { get; set; }
+}
+
+
+public enum ConversationType
+{
+    Itinerary = 0,
+    Information = 1
 }

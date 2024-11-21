@@ -229,6 +229,8 @@ namespace AI_Voyage_Concierge.Controllers
                 {
                     UserEmail = "rdharia@gmail.com", //use jwt 
                     Messages = [userMessage, modelMessage]
+                    Messages = [userMessage, modelMessage],
+                    ConversationType = ConversationType.Itinerary
                 };
                 currentConversation.ConversationId = await CreateConversation(conversation);
             }
@@ -299,6 +301,8 @@ namespace AI_Voyage_Concierge.Controllers
                 {
                     UserEmail = "rdharia@gmail.com", //use jwt 
                     Messages = [userMessage, modelMessage]
+                    Messages = [userMessage, modelMessage],
+                    ConversationType = ConversationType.Information
                 };
                 currentConversation.ConversationId = await CreateConversation(conversation);
             }
