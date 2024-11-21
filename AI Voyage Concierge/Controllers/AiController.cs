@@ -228,7 +228,6 @@ namespace AI_Voyage_Concierge.Controllers
                 var conversation = new Conversation
                 {
                     UserEmail = "rdharia@gmail.com", //use jwt 
-                    Messages = [userMessage, modelMessage]
                     Messages = [userMessage, modelMessage],
                     ConversationType = ConversationType.Itinerary
                 };
@@ -300,7 +299,6 @@ namespace AI_Voyage_Concierge.Controllers
                 var conversation = new Conversation
                 {
                     UserEmail = "rdharia@gmail.com", //use jwt 
-                    Messages = [userMessage, modelMessage]
                     Messages = [userMessage, modelMessage],
                     ConversationType = ConversationType.Information
                 };
@@ -330,8 +328,9 @@ namespace AI_Voyage_Concierge.Controllers
         /// <returns>A list of conversations</returns>
         [Authorize]
         [HttpGet(Name = "GetConversationHistory")]
-        public async Task<IEnumerable<Conversation>> GetConversationHistory(string userEmail)
+        public async Task<IEnumerable<Conversation>> GetConversationHistory()
         {
+            var userEmail = "rdharia@gmail.com"; // replace using claim from jwt
             var filter = Builders<Conversation>.Filter.Eq("user_email", userEmail);
             return await _conversations.Find(filter).ToListAsync();
         }
