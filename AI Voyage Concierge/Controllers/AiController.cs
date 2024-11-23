@@ -324,7 +324,6 @@ namespace AI_Voyage_Concierge.Controllers
         /// <summary>
         /// Get a list of all conversations for the given user
         /// </summary>
-        /// <param name="userEmail">The email of the user</param>
         /// <returns>A list of conversations</returns>
         [Authorize]
         [HttpGet(Name = "GetConversationHistory")]
@@ -332,9 +331,28 @@ namespace AI_Voyage_Concierge.Controllers
         {
             var userEmail = "rdharia@gmail.com"; // replace using claim from jwt
             var filter = Builders<Conversation>.Filter.Eq("user_email", userEmail);
-            return await _conversations.Find(filter).ToListAsync();
+            var conversationsList = await _conversations.Find(filter).ToListAsync();
+
+            // Find a better wat to get only the first message for each conversation
+            // Possible solution is to use MongoDB Aggregation pipeline
+            foreach (var conversation in conversationsList)
+            {
+                var message = conversation.Messages[0];
+                conversation.Messages = [message];
+            }
+            
+            return conversationsList;
         }
 
+
+        [Authorize]
+        [HttpGet("{conversationId}", Name = "GetConversationById")]
+        public async Task<List<Message>> GetConversationById(string conversationId)
+        {
+            var conversation = await GetConversationHistoryById(conversationId);
+            return conversation.Messages;
+        }
+        
         /// <summary>
         /// Get a single conversation by its id
         /// </summary>
