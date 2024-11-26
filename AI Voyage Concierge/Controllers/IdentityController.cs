@@ -53,7 +53,7 @@ public class IdentityController : Controller
         {
             Subject = new ClaimsIdentity(new Claim[]
             {
-                new Claim(ClaimTypes.Name, currentUser.Email ?? throw new InvalidOperationException())
+                new Claim(ClaimTypes.Email, currentUser.Email ?? throw new InvalidOperationException())
             }),
             Expires = DateTime.UtcNow.AddDays(7),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

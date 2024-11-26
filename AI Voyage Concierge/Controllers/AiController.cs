@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using AI_Voyage_Concierge.Entities;
 using AI_Voyage_Concierge.Data;
 using MongoDB.Driver;
@@ -227,7 +228,7 @@ namespace AI_Voyage_Concierge.Controllers
                 // Create new conversation
                 var conversation = new Conversation
                 {
-                    UserEmail = "rdharia@gmail.com", //use jwt 
+                    UserEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
                     Messages = [userMessage, modelMessage],
                     ConversationType = ConversationType.Itinerary
                 };
@@ -298,7 +299,7 @@ namespace AI_Voyage_Concierge.Controllers
                 // Create new conversation
                 var conversation = new Conversation
                 {
-                    UserEmail = "rdharia@gmail.com", //use jwt 
+                    UserEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value, 
                     Messages = [userMessage, modelMessage],
                     ConversationType = ConversationType.Information
                 };
@@ -329,7 +330,7 @@ namespace AI_Voyage_Concierge.Controllers
         [HttpGet(Name = "GetConversationHistory")]
         public async Task<IEnumerable<Conversation>> GetConversationHistory()
         {
-            var userEmail = "rdharia@gmail.com"; // replace using claim from jwt
+            var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
             var filter = Builders<Conversation>.Filter.Eq("user_email", userEmail);
             var conversationsList = await _conversations.Find(filter).ToListAsync();
 
@@ -360,7 +361,7 @@ namespace AI_Voyage_Concierge.Controllers
         /// <returns>The conversation or null if no conversation is found</returns>
         private async Task<Conversation> GetConversationHistoryById(string conversationId)
         {
-            var userEmail = "rdharia@gmail.com"; // replace using claim from jwt
+            var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
             var filterEmail = Builders<Conversation>.Filter.Eq("user_email", userEmail);
             var filterConversationId = Builders<Conversation>.Filter.Eq(x => x.Id, conversationId);
             return await _conversations.Find(filterConversationId).FirstOrDefaultAsync();
